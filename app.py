@@ -48,26 +48,6 @@ def format_datetime(value, format='medium'):
   return babel.dates.format_datetime(date, format, locale='en')
 
 app.jinja_env.filters['datetime'] = format_datetime
-##Utilitie
-def get_upcoming_show (shows):
-  upcoming_show = []
-  current_time = int(round(datetime.now().timestamp())) #Converts date string to EPOCH Timestamp
-  for show in shows:
-    show_time = int(round(show.start_time.timestamp()))
-    if show_time > current_time:
-      upcoming_show.append(show)
-  
-  return upcoming_show
-
-def get_past_show(shows):
-  past_show = []
-  current_time = int(round(datetime.now().timestamp())) #Converts date string to EPOCH Timestamp
-  for show in shows:
-    show_time = int(round(show.start_time.timestamp()))
-    if show_time < current_time:
-      past_show.append(show)
-  
-  return past_show
 
 
 #----------------------------------------------------------------------------#
@@ -126,7 +106,6 @@ def search_venues():
   search_term = request.form.get('search_term')
 
   data =[]
-  upcoming_shows = []
 
   match_venues = Venue.query.filter(Venue.name.ilike(f'%{search_term}%')).all()
 
@@ -137,7 +116,7 @@ def search_venues():
 
     shows = venue.artists
     if len(upcoming_shows) >= 1:
-      upcoming_shows = get_upcoming_show(shows)
+      upcoming_shows = [show.start_time > datetime.now() for show in shows]
     
     item['num_upcoming_show'] = len(upcoming_shows)
 
@@ -172,8 +151,6 @@ def show_venue(venue_id):
     'image_link': current_venue.image_link
   }
 
-  upcoming_shows = []
-  past_shows = []
 
   upcoming_shows_query = db.session.query(Show).join(Venue).\
   filter(Show.venue_id == current_venue.id).\
